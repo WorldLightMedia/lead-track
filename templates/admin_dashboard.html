@@ -4,11 +4,13 @@
 
 {% block kpi %}
 <h4 align="center">Key Performance Indicators(KPI's)</h4>
+<ul>
 {% for kpi in kpi_nums %}
 
 <li align="center">{{pretty_name(kpi)}} : {{kpi_nums[kpi]}}</li>
 
 {% endfor %}
+</ul>
 {% endblock %}
 
 {% block body %}
