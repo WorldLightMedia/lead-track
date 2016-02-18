@@ -14,7 +14,7 @@ class User(object):
 			conn = mysql.connect()
 			cursor = conn.cursor()
 			cursor.execute('SELECT id,email,access,authenticated,name FROM lead_track_users WHERE email = %s',[email,])
-			user = cursor.fetchone()
+			user = cursor.fetchone()			
 			conn.close()
 			self.email = user[1]
 			self.user_id = user[0]

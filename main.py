@@ -25,10 +25,10 @@ app.secret_key = 'BD$b7v5vbr494rfci7cv47b'
 #MySQL Config.
 
 mysql = MySQL()
-app.config['MYSQL_DATABASE_USER'] = MYSQL_DATABASE_USER
-app.config['MYSQL_DATABASE_PASSWORD'] = MYSQL_DATABASE_PASSWORD
-app.config['MYSQL_DATABASE_DB'] = MYSQL_DATABASE_DB
-app.config['MYSQL_DATABASE_HOST'] = MYSQL_DATABASE_HOST
+app.config['MYSQL_DATABASE_USER'] = "root"
+app.config['MYSQL_DATABASE_PASSWORD'] = "root"
+app.config['MYSQL_DATABASE_DB'] = "lead_track"
+app.config['MYSQL_DATABASE_HOST'] = "localhost"
 mysql.init_app(app)
 
 
@@ -74,14 +74,18 @@ class User(object):
 	"""docstring for User"""
 	def __init__(self):
 		pass
-	def get(self,email):
+	def get(self,email=None,zip_code=None):
 		try:
 			conn = mysql.connect()
-			cursor = conn.cursor()
-			cursor.execute('SELECT id,email,access,authenticated,name,password,phone_number FROM lead_track_users WHERE email = %s',[email,])
-			user = cursor.fetchone()
+			cursor = conn.cursor()				
+			if email is not None:
+				cursor.execute('SELECT id,email,access,authenticated,name,password,phone_number FROM lead_track_users WHERE email = %s',[email,])
+			elif zip_code is not None:
+				cursor.execute('SELECT id,email,access,authenticated,name,password,phone_number FROM lead_track_users WHERE zip_codes LIKE %s',["%"+zip_code+"%",])
+			user = cursor.fetchone()		
 			conn.close()
 			self.email = user[1]
+			self.id = user[0]
 			self.user_id = str(user[0])
 			self.authenticated = user[3]
 			self.access = user[2]
@@ -91,7 +95,9 @@ class User(object):
 			return True
 
 		except:
+			print "No user found"
 			return False
+
 
 	def is_active(self):
 		return True
@@ -122,12 +128,12 @@ class User(object):
 
 
 
-def create_user(name,email,access,password,phone_number):
+def create_user(name,email,access,password,phone_number,zip_codes=""):
 	conn = mysql.connect()
 	with conn:
 		cursor = conn.cursor()
-		params = [name,email,phone_number,access,password]
-		sql = 'INSERT INTO lead_track_users(id,name,email,phone_number,access,password) VALUES (NULL,%s,%s,%s,%s,%s);'
+		params = [name,email,phone_number,access,password,zip_codes]
+		sql = 'INSERT INTO lead_track_users(id,name,email,phone_number,access,password,zip_codes) VALUES (NULL,%s,%s,%s,%s,%s,%s);'
 		cursor.execute(sql ,params)
 	return True
 
@@ -524,7 +530,10 @@ def login():
 		if 'remember' in params:
 			remember = True
 		user = User()
+		print "out If"
 		if user.get(email=email):
+			print "out If"
+			print user.password
 			if bcrypt.check_password_hash(user.password,password):
 				user.authenticated = True
 				if user.save():
@@ -1133,8 +1142,7 @@ def add_details(params,extras):
 	first_name = params['first_name']
 	last_name = params['last_name']
 
-	email = params['email']
-	print email
+	email = params['email']	
 
 	mobile_phone = extract_number(params['phone_number'])
 	home_phone = extract_number(params['home_phone'])
@@ -1151,7 +1159,6 @@ def add_details(params,extras):
 	else:
 		apartment_number = ''
 
-	print params['apartment_number']
 	if params['referrer'] == 'yes':
 		referer_name = params['r_first_name'] +' '+ params['r_last_name']
 		referer_phone_number = extract_number(params['referrer_phone'])
@@ -1173,28 +1180,55 @@ def add_details(params,extras):
 	else:
 		own = 'RENT'
 	income = params['required_income']
+	agent = User()	
+	agent_id = None
+	if agent.get(zip_code=zip_code):
+		agent_id = agent.id
+	print agent_id
 	# public_assistance = params['public_assistance']
 	public_assistance = ''
 
+	sql = ''
+	sql_params = []
+	if agent_id is None:
 
-	sql = 'INSERT  INTO lead_details(first_name,\
-									last_name,\
-									email,\
-									phone_number,\
-									home_phone,\
-									zip,\
-									members,\
-									street_number,street_name,\
-									apartment_number,\
-									city,\
-									state,\
-									country,\
-									referer_name,\
-									referer_phone,referer_email,referer_relation,\
-									gas,electric,own,income,public_assistance) \
-						 VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+		sql = 'INSERT  INTO lead_details(first_name,\
+										last_name,\
+										email,\
+										phone_number,\
+										home_phone,\
+										zip,\
+										members,\
+										street_number,street_name,\
+										apartment_number,\
+										city,\
+										state,\
+										country,\
+										referer_name,\
+										referer_phone,referer_email,referer_relation,\
+										gas,electric,own,income,public_assistance) \
+							 VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
 
-	sql_params = [first_name,last_name,email,mobile_phone,home_phone,zip_code,members,street_number,street_name,apartment_number,city,state,country,referer_name,referer_phone_number,referer_email,referer_relation,gas,electric,own,income,public_assistance]
+		sql_params = [first_name,last_name,email,mobile_phone,home_phone,zip_code,members,street_number,street_name,apartment_number,city,state,country,referer_name,referer_phone_number,referer_email,referer_relation,gas,electric,own,income,public_assistance]
+	else:
+		sql = 'INSERT  INTO lead_details(first_name,\
+										last_name,\
+										email,\
+										phone_number,\
+										home_phone,\
+										zip,\
+										members,\
+										street_number,street_name,\
+										apartment_number,\
+										city,\
+										state,\
+										country,\
+										referer_name,\
+										referer_phone,referer_email,referer_relation,\
+										gas,electric,own,income,public_assistance,agent) \
+							 VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+
+		sql_params = [first_name,last_name,email,mobile_phone,home_phone,zip_code,members,street_number,street_name,apartment_number,city,state,country,referer_name,referer_phone_number,referer_email,referer_relation,gas,electric,own,income,public_assistance,agent_id]
 
 	conn = mysql.connect()
 
