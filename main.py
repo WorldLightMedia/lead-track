@@ -74,14 +74,15 @@ class User(object):
 	"""docstring for User"""
 	def __init__(self):
 		pass
-	def get(self,email=None,zip_code=None):
+	def get(self,email=None,city=None):
 		try:
 			conn = mysql.connect()
-			cursor = conn.cursor()				
+			cursor = conn.cursor()	
+			print city			
 			if email is not None:
 				cursor.execute('SELECT id,email,access,authenticated,name,password,phone_number FROM lead_track_users WHERE email = %s',[email,])
-			elif zip_code is not None:
-				cursor.execute('SELECT id,email,access,authenticated,name,password,phone_number FROM lead_track_users WHERE zip_codes LIKE %s',["%"+zip_code+"%",])
+			elif city is not None:
+				cursor.execute('SELECT id,email,access,authenticated,name,password,phone_number FROM lead_track_users WHERE cities LIKE %s',["%"+city+"%",])
 			user = cursor.fetchone()		
 			conn.close()
 			self.email = user[1]
@@ -127,13 +128,35 @@ class User(object):
 			return False
 
 
+class ZipCode(object):
+	"""docstring for User"""
+	def __init__(self):
+		pass
+	def get(self,zip_code=None):
+		try:
+			conn = mysql.connect()
+			cursor = conn.cursor()				
+			if zip_code is not None:
+				cursor.execute('SELECT id,zip_code,city FROM zip_codes WHERE zip_code LIKE %s',[zip_code,])
+			cityZip = cursor.fetchone()		
+			conn.close()
+			self.zip_code = cityZip[1]
+			self.city = cityZip[2]
+			return True
 
-def create_user(name,email,access,password,phone_number,zip_codes=""):
+		except:
+			print "No zip code found"
+			return False
+
+
+
+
+def create_user(name,email,access,password,phone_number,cities=""):
 	conn = mysql.connect()
 	with conn:
 		cursor = conn.cursor()
-		params = [name,email,phone_number,access,password,zip_codes]
-		sql = 'INSERT INTO lead_track_users(id,name,email,phone_number,access,password,zip_codes) VALUES (NULL,%s,%s,%s,%s,%s,%s);'
+		params = [name,email,phone_number,access,password,cities]
+		sql = 'INSERT INTO lead_track_users(id,name,email,phone_number,access,password,cities) VALUES (NULL,%s,%s,%s,%s,%s,%s);'
 		cursor.execute(sql ,params)
 	return True
 
@@ -470,8 +493,9 @@ def create():
 		phone_number = params['phone_number']
 		access = params['access']
 		password = params['password']
+		cities = params['cities']
 		pwd_hash = bcrypt.generate_password_hash(password)
-		if create_user(name=name,email=email,phone_number=phone_number,access=access,password=pwd_hash):
+		if create_user(name=name,email=email,phone_number=phone_number,access=access,password=pwd_hash,cities=cities):
 			return render_template('create_user.html',success=True)
 		else:
 			return render_template('create_user.html',success=False)
@@ -1179,10 +1203,14 @@ def add_details(params,extras):
 		own = 'OWN'
 	else:
 		own = 'RENT'
+
 	income = params['required_income']
+
+	cityZip = ZipCode()
+	cityZip.get(zip_code=zip_code)
 	agent = User()	
 	agent_id = None
-	if agent.get(zip_code=zip_code):
+	if agent.get(city=cityZip.city):
 		agent_id = agent.id
 	print agent_id
 	# public_assistance = params['public_assistance']
