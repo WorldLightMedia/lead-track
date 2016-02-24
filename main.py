@@ -78,7 +78,7 @@ class User(object):
 		try:
 			conn = mysql.connect()
 			cursor = conn.cursor()	
-			print city			
+						
 			if email is not None:
 				cursor.execute('SELECT id,email,access,authenticated,name,password,phone_number FROM lead_track_users WHERE email = %s',[email,])
 			elif city is not None:
@@ -1171,7 +1171,7 @@ def add_details(params,extras):
 	mobile_phone = extract_number(params['phone_number'])
 	home_phone = extract_number(params['home_phone'])
 
-	zip_code = params['zip_code']
+	
 	members = params['members']
 
 	street_number = params['street_number']
@@ -1206,13 +1206,22 @@ def add_details(params,extras):
 
 	income = params['required_income']
 
-	cityZip = ZipCode()
-	cityZip.get(zip_code=zip_code)
-	agent = User()	
+	agent = User()
 	agent_id = None
-	if agent.get(city=cityZip.city):
+	zip_code = ''
+	if params.has_key("zip_code"): 
+		zip_code = params['zip_code']
+
+	if agent.get(city=city):
 		agent_id = agent.id
-	print agent_id
+	elif params.has_key("zip_code"): 
+		zip_code = params['zip_code']
+		cityZip = ZipCode()
+		cityZip.get(zip_code=zip_code)
+		if agent.get(city=cityZip.city):
+			agent_id = agent.id
+		
+
 	# public_assistance = params['public_assistance']
 	public_assistance = ''
 
